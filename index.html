@@ -1,0 +1,311 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Fitness Coach</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;600&display=swap');
+
+        body {
+            font-family: 'Poppins', Arial, sans-serif;
+            position: relative;
+            background-color: #2c2c2c;
+            color: #f0f0f0;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+        }
+
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+            border: 1px solid #444;
+            border-radius: 5px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
+            position: relative;
+            z-index: 1;
+            background-color: #333;
+            margin-top: 50px;
+        }
+
+        h1 {
+            text-align: center;
+            font-size: 2.5em;
+            font-weight: 600;
+            background: linear-gradient(45deg, #ff4081, #007bff);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-size: 200% 200%;
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            margin: 10px 0 5px;
+        }
+
+        input[type="text"], input[type="number"], textarea, select {
+            width: 100%;
+            padding: 8px;
+            box-sizing: border-box;
+            margin-bottom: 10px;
+            border-radius: 10px;
+            border: 1px solid #555;
+            background-color: #444;
+            color: #f0f0f0;
+        }
+
+        button {
+            padding: 10px 20px;
+            background: linear-gradient(45deg, #ff4081, #007bff);
+            color: #fff;
+            border: none;
+            cursor: pointer;
+            border-radius: 15px;
+            transition: background 0.3s ease;
+        }
+
+        button:hover {
+            background: linear-gradient(45deg, #ff4081, #007bff);
+        }
+
+        .response {
+            margin-top: 20px;
+            padding: 10px;
+            border: 1px solid #007bff;
+            border-radius: 5px;
+            background-color: #444;
+        }
+
+        .loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            backdrop-filter: blur(5px);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 999;
+            background-color: rgba(0, 0, 0, 0.5);
+        }
+
+        .loading-spinner {
+            border: 4px solid rgba(255, 255, 255, 0.3);
+            border-top: 4px solid #007bff;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% {
+                transform: rotate(0deg);
+            }
+            100% {
+                transform: rotate(360deg);
+            }
+        }
+    </style>
+</head>
+<body>
+<div class="loading-overlay" id="loadingOverlay">
+    <div class="loading-spinner"></div>
+</div>
+
+<div class="container">
+    <h1>AI Fitness Coach</h1>
+    <form id="fitnessForm">
+        <label for="age">Age</label>
+        <input type="number" id="age" name="age" placeholder="Enter your age" required>
+
+        <label for="height">Height (cm)</label>
+        <input type="number" id="height" name="height" placeholder="Enter your height" required>
+
+        <label for="weight">Weight (kg)</label>
+        <input type="number" id="weight" name="weight" placeholder="Enter your weight" required>
+
+        <label for="gender">Gender</label>
+        <select id="gender" name="gender" required>
+            <option value="true">Male</option>
+            <option value="false">Female</option>
+        </select>
+
+        <label for="typeOfSport">Type of Sport</label>
+        <input type="text" id="typeOfSport" name="typeOfSport" placeholder="Enter type of sport" required>
+
+        <label for="place">Place</label>
+        <select id="place" name="place" required>
+            <option value="true">Gym</option>
+            <option value="false">Home</option>
+        </select>
+
+        <label for="daysOfTheWeek">Days of the Week</label>
+        <input type="number" id="daysOfTheWeek" name="daysOfTheWeek" placeholder="Enter number of days you can work out in a week" required>
+
+        <label for="timePeriod">Program Duration (months)</label>
+        <input type="number" id="timePeriod" name="timePeriod" placeholder="Enter duration of the program in months" required>
+
+        <button type="submit">Submit</button>
+    </form>
+    <div id="responseContainer" class="response" style="display: none;"></div>
+</div>
+
+<script type="importmap">
+    {
+        "imports": {
+            "@google/generative-ai": "https://esm.run/@google/generative-ai"
+        }
+    }
+</script>
+<script type="module">
+    import { GoogleGenerativeAI } from "@google/generative-ai";
+
+    const API_KEY = "AIzaSyB3GRRnXnOsnRJOhPpLQtWvKf4Bs1Hx-nU"; // Replace with your actual API key
+
+    const genAI = new GoogleGenerativeAI(API_KEY);
+    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+
+    document.getElementById('fitnessForm').addEventListener('submit', async function (event) {
+        event.preventDefault();
+
+        // Retrieve form values
+        const age = document.getElementById('age').value;
+        const height = document.getElementById('height').value;
+        const weight = document.getElementById('weight').value;
+        const gender = document.getElementById('gender').value;
+        const typeOfSport = document.getElementById('typeOfSport').value;
+        const place = document.getElementById('place').value;
+        const daysOfTheWeek = document.getElementById('daysOfTheWeek').value;
+        const timePeriod = document.getElementById('timePeriod').value;
+
+        // Create the request body
+        const requestBody = {
+            age: parseInt(age, 10),
+            height: parseInt(height, 10),
+            weight: parseFloat(weight),
+            gender: gender === 'true',  // Ensure the server expects a boolean
+            typeOfSport: typeOfSport,
+            place: place === 'true',    // Ensure the server expects a boolean
+            daysOfTheWeek: parseInt(daysOfTheWeek, 10),
+            timePeriod: parseInt(timePeriod, 10)
+        };
+
+        try {
+            const loadingOverlay = document.getElementById('loadingOverlay');
+            loadingOverlay.style.display = 'flex';  // Show loading overlay
+
+            const response = await fetch('http://localhost:8080/api/fitness/generateProgram', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(requestBody) // Send request payload
+            });
+
+            if (!response.ok) {
+                // Check if the server responds with error details
+                const errorDetails = await response.text();
+                throw new Error(`HTTP error! Status: ${response.status}. Details: ${errorDetails}`);
+            }
+
+            const result = await response.json();
+            displayResponse(result.geminiResponse || 'No response from AI'); // Display AI response
+        } catch (error) {
+            console.error('Error:', error);
+            displayResponse('Error: ' + error.message); // Display error message
+        } finally {
+            document.getElementById('loadingOverlay').style.display = 'none'; // Hide loading overlay
+        }
+    });
+
+    function displayResponse(responseText) {
+        const responseContainer = document.getElementById('responseContainer');
+        responseContainer.style.display = 'block'; // Show response container
+        responseContainer.innerText = responseText || 'No response from AI'; // Display response text
+    }
+</script>
+<script type="module">
+    import { GoogleGenerativeAI } from "@google/generative-ai";
+
+    const API_KEY = "AIzaSyB3GRRnXnOsnRJOhPpLQtWvKf4Bs1Hx-nU"; // Replace with your actual API key
+
+    const genAI = new GoogleGenerativeAI(API_KEY);
+    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+
+    document.getElementById('fitnessForm').addEventListener('submit', async function (event) {
+        event.preventDefault();
+
+        // Retrieve form values
+        const age = document.getElementById('age').value;
+        const height = document.getElementById('height').value;
+        const weight = document.getElementById('weight').value;
+        const gender = document.getElementById('gender').value;
+        const typeOfSport = document.getElementById('typeOfSport').value;
+        const place = document.getElementById('place').value;
+        const daysOfTheWeek = document.getElementById('daysOfTheWeek').value;
+        const timePeriod = document.getElementById('timePeriod').value;
+
+        // Create the request body
+        const requestBody = {
+            age: parseInt(age, 10),
+            height: parseInt(height, 10),
+            weight: parseFloat(weight),
+            gender: gender === 'true',
+            typeOfSport: typeOfSport,
+            place: place === 'true',
+            daysOfTheWeek: parseInt(daysOfTheWeek, 10),
+            timePeriod: parseInt(timePeriod, 10)
+        };
+
+        try {
+            const loadingOverlay = document.getElementById('loadingOverlay');
+            loadingOverlay.style.display = 'flex';  // Show loading overlay
+
+            const response = await fetch('http://localhost:8080/api/fitness/generateProgram', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(requestBody) // Send request payload
+            });
+
+            const responseText = await response.text(); // Get raw response text for debugging
+            console.log('Response Text:', responseText); // Debug: Print response text
+
+            if (!response.ok) {
+                throw new Error(`HTTP error! Status: ${response.status}. Details: ${responseText}`);
+            }
+
+            try {
+                const result = JSON.parse(responseText); // Parse JSON response
+                console.log('Full Response:', result); // Debug: Print full response
+                displayResponse(result.geminiResponse || 'No response from AI'); // Display AI response
+            } catch (e) {
+                console.error('Parsing error:', e);
+                displayResponse('Error parsing response: ' + e.message);
+            }
+        } catch (error) {
+            console.error('Error:', error);
+            displayResponse('Error: ' + error.message); // Display error message
+        } finally {
+            document.getElementById('loadingOverlay').style.display = 'none'; // Hide loading overlay
+        }
+    });
+
+    function displayResponse(responseText) {
+        const responseContainer = document.getElementById('responseContainer');
+        responseContainer.style.display = 'block'; // Show response container
+        responseContainer.innerText = responseText || 'No response from AI'; // Display response text
+    }
+</script>
+
+</body>
+</html>
