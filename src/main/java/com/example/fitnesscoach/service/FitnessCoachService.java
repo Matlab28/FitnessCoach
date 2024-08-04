@@ -23,7 +23,7 @@ public class FitnessCoachService implements GeminiService {
 
     private final ModelMapper modelMapper;
     private final FitnessRepository repository;
-    private final String key = "AIzaSyB3GRRnXnOsnRJOhPpLQtWvKf4Bs1Hx-nU";
+    private final String key = "YOUR_API_KEY";
     private final GeminiApiClient client;
     private Root latestResponse;
 
